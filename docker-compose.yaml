@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0.28
+    environment:
+      MYSQL_DATABASE: 'super-app'
+      MYSQL_ROOT_PASSWORD: 'password'
+    ports:
+      - "3306:3306"
+
+  node-app:
+    build:
+      context: ./node
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mysql
+
+  php-app:
+    build:
+      context: ./php
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
