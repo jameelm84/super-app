@@ -1,17 +1,17 @@
 pipeline {
     agent any
-    
+
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub')
     }
-    
+
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/jameelm84/super-app.git'
+                git url: 'https://github.com/jameelm84/super-app.git', branch: 'main'
             }
         }
-        
+
         stage('Build') {
             steps {
                 script {
@@ -20,7 +20,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Test') {
             steps {
                 script {
@@ -33,7 +33,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Push to DockerHub') {
             steps {
                 script {
@@ -45,7 +45,7 @@ pipeline {
             }
         }
     }
-    
+
     post {
         always {
             cleanWs()
