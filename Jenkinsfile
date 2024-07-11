@@ -48,7 +48,11 @@ pipeline {
 
     post {
         always {
-            cleanWs()
+            script {
+                if (fileExists(env.WORKSPACE)) {
+                    deleteDir()
+                }
+            }
         }
     }
 }
