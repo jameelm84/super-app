@@ -1,54 +1,43 @@
 pipeline {
     agent any
-    
+
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub') // שם ה-Credentials שהגדרת
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub')
+        DOCKERHUB_REPO = "jameelm/supper-app"
     }
-    
+
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/username/repository.git'
+                git 'https://github.com/jameelm84/super-app.git'
             }
         }
-        
-        stage('Build') {
+
+        stage('Build Node Image') {
             steps {
                 script {
-                    docker.build('super-app', '-f nodes/Dockerfile .')
-                    docker.build('php-app', '-f php/Dockerfile .')
+                    docker.build("${DOCKERHUB_REPO}:node", "-f nodes/Dockerfile nodes")
                 }
             }
         }
-        
-        stage('Test') {
+
+        stage('Build PHP Image') {
             steps {
                 script {
-                    docker.image('super-app').inside {
-                        sh 'npm test' // Assuming you have tests defined
-                    }
-                    docker.image('php-app').inside {
-                        sh 'php -r "echo \'Tests run\';"' // Dummy test command
-                    }
+                    docker.build("${DOCKERHUB_REPO}:php", "-f php/Dockerfile php")
                 }
             }
         }
-        
-        stage('Push to DockerHub') {
+
+        stage('Push Images to DockerHub') {
             steps {
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub') {
-                        docker.image('super-app').push('latest')
-                        docker.image('php-app').push('latest')
+                    docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CREDENTIALS) {
+                        docker.image("${DOCKERHUB_REPO}:node").push()
+                        docker.image("${DOCKERHUB_REPO}:php").push()
                     }
                 }
             }
-        }
-    }
-    
-    post {
-        always {
-            cleanWs()
         }
     }
 }
