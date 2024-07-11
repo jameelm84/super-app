@@ -49,8 +49,10 @@ pipeline {
     post {
         always {
             script {
-                if (fileExists(env.WORKSPACE)) {
-                    deleteDir()
+                node {
+                    if (fileExists(env.WORKSPACE)) {
+                        deleteDir()
+                    }
                 }
             }
         }
