@@ -1,6 +1,11 @@
 # Download the slim version of node
 FROM node:17-slim
 
+FROM jenkins/jenkins:lts
+USER root
+RUN apt-get update && apt-get install -y git
+USER jenkins
+
 # Set the work directory to app folder. 
 # We will be copying our code here
 WORKDIR /node
