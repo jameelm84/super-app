@@ -15,8 +15,14 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    docker.build('super-app', '-f nodes/Dockerfile nodes')
-                    docker.build('php-app', '-f php/Dockerfile php')
+                    try {
+                        docker.build('super-app', '-f nodes/Dockerfile nodes')
+                        docker.build('php-app', '-f php/Dockerfile php')
+                    } catch (Exception e) {
+                        echo "Build failed: ${e.message}"
+                        currentBuild.result = 'FAILURE'
+                        throw e
+                    }
                 }
             }
         }
@@ -24,11 +30,17 @@ pipeline {
         stage('Test') {
             steps {
                 script {
-                    docker.image('super-app').inside {
-                        sh 'npm test' // Assuming you have tests defined
-                    }
-                    docker.image('php-app').inside {
-                        sh 'php -r "echo \'Tests run\';"' // Dummy test command
+                    try {
+                        docker.image('super-app').inside {
+                            sh 'npm test' // Assuming you have tests defined
+                        }
+                        docker.image('php-app').inside {
+                            sh 'php -r "echo \'Tests run\';"' // Dummy test command
+                        }
+                    } catch (Exception e) {
+                        echo "Test failed: ${e.message}"
+                        currentBuild.result = 'FAILURE'
+                        throw e
                     }
                 }
             }
@@ -37,9 +49,15 @@ pipeline {
         stage('Push to DockerHub') {
             steps {
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub') {
-                        docker.image('super-app').push('latest')
-                        docker.image('php-app').push('latest')
+                    try {
+                        docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CREDENTIALS) {
+                            docker.image('super-app').push('latest')
+                            docker.image('php-app').push('latest')
+                        }
+                    } catch (Exception e) {
+                        echo "Push to DockerHub failed: ${e.message}"
+                        currentBuild.result = 'FAILURE'
+                        throw e
                     }
                 }
             }
