@@ -15,8 +15,8 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    docker.build('super-app', '-f nodes/Dockerfile .')
-                    docker.build('php-app', '-f php/Dockerfile .')
+                    docker.build('super-app', '-f nodes/Dockerfile nodes')
+                    docker.build('php-app', '-f php/Dockerfile php')
                 }
             }
         }
