@@ -3,7 +3,6 @@ pipeline {
 
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub')
-        DOCKERHUB_REPO = "jameelm/supper-app"
     }
 
     stages {
@@ -12,29 +11,22 @@ pipeline {
                 git branch: 'main', url: 'https://github.com/jameelm84/super-app.git'
             }
         }
-
-        stage('Build Node Image') {
+        stage('Build and Push Node Image') {
             steps {
                 script {
-                    docker.build("${DOCKERHUB_REPO}:node", "-f nodes/Dockerfile nodes")
+                    docker.withRegistry('', env.DOCKERHUB_CREDENTIALS) {
+                        def nodeApp = docker.build("jameelm/supper-app:node", "nodes/")
+                        nodeApp.push()
+                    }
                 }
             }
         }
-
-        stage('Build PHP Image') {
+        stage('Build and Push PHP Image') {
             steps {
                 script {
-                    docker.build("${DOCKERHUB_REPO}:php", "-f php/Dockerfile php")
-                }
-            }
-        }
-
-        stage('Push Images to DockerHub') {
-            steps {
-                script {
-                    docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CREDENTIALS) {
-                        docker.image("${DOCKERHUB_REPO}:node").push()
-                        docker.image("${DOCKERHUB_REPO}:php").push()
+                    docker.withRegistry('', env.DOCKERHUB_CREDENTIALS) {
+                        def phpApp = docker.build("jameelm/supper-app:php", "php/")
+                        phpApp.push()
                     }
                 }
             }
