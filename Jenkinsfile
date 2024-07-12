@@ -8,28 +8,38 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/jameelm84/super-app.git'
+                checkout scm
             }
         }
-        stage('Build and Push Node Image') {
+        stage('Build Node.js App') {
             steps {
                 script {
-                    docker.withRegistry('', env.DOCKERHUB_CREDENTIALS) {
-                        def nodeApp = docker.build("jameelm/supper-app:node", "nodes/")
-                        nodeApp.push()
+                    docker.image('node:17-slim').inside {
+                        sh 'cd nodes && npm install && npm test'
                     }
                 }
             }
         }
-        stage('Build and Push PHP Image') {
+        stage('Build Docker Image') {
             steps {
                 script {
-                    docker.withRegistry('', env.DOCKERHUB_CREDENTIALS) {
-                        def phpApp = docker.build("jameelm/supper-app:php", "php/")
-                        phpApp.push()
+                    docker.build("jameelm/supper-app:node", "-f nodes/Dockerfile nodes")
+                }
+            }
+        }
+        stage('Push to DockerHub') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub') {
+                        docker.image('jameelm/supper-app:node').push()
                     }
                 }
             }
+        }
+    }
+    post {
+        always {
+            cleanWs()
         }
     }
 }
