@@ -14,8 +14,8 @@ pipeline {
         stage('Build Node.js App') {
             steps {
                 script {
-                    docker.image('node:17-slim').inside {
-                        sh 'cd nodes && npm install && npm test'
+                    docker.image('jameelm/supper-app:node').inside {
+                        sh 'cd node && npm install && npm test'
                     }
                 }
             }
@@ -23,7 +23,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("jameelm/supper-app:node", "-f nodes/Dockerfile nodes")
+                    docker.build("jameelm/supper-app:node", "-f Dockerfile .")
                 }
             }
         }
