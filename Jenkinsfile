@@ -1,45 +1,30 @@
 pipeline {
     agent any
-
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub')
+        REPO_NAME = 'jameelm/supper-app'
     }
-
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
-            }
-        }
-        stage('Build Node.js App') {
-            steps {
-                script {
-                    docker.image('jameelm/supper-app:node').inside {
-                        sh 'cd node && npm install && npm test'
-                    }
-                }
+                git 'https://github.com/jameelm84/super-app.git'
             }
         }
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("jameelm/supper-app:node", "-f Dockerfile .")
+                    docker.build("${env.REPO_NAME}:${env.BUILD_NUMBER}")
                 }
             }
         }
-        stage('Push to DockerHub') {
+        stage('Push to Docker Hub') {
             steps {
                 script {
                     docker.withRegistry('https://index.docker.io/v1/', 'dockerhub') {
-                        docker.image('jameelm/supper-app:node').push()
+                        docker.image("${env.REPO_NAME}:${env.BUILD_NUMBER}").push()
                     }
                 }
             }
-        }
-    }
-    post {
-        always {
-            cleanWs()
         }
     }
 }
