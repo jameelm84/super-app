@@ -7,7 +7,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/jameelm84/super-app.git'
+                git branch: 'main', credentialsId: 'Github', url: 'https://github.com/jameelm84/super-app.git'
             }
         }
         stage('Build Docker Image') {
