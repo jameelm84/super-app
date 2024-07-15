@@ -13,8 +13,8 @@ pipeline {
         stage('Verify Dockerfile') {
             steps {
                 script {
-                    if (!fileExists('Dockerfile')) {
-                        error "Dockerfile not found"
+                    if (!fileExists('node/Dockerfile')) {
+                        error "Dockerfile not found in node directory"
                     }
                 }
             }
@@ -22,7 +22,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("${env.REPO_NAME}:${env.BUILD_NUMBER}")
+                    docker.build("${env.REPO_NAME}:${env.BUILD_NUMBER}", "node/")
                 }
             }
         }
