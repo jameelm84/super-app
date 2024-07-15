@@ -10,6 +10,15 @@ pipeline {
                 git branch: 'main', credentialsId: 'github-credentials', url: 'https://github.com/jameelm84/super-app.git'
             }
         }
+        stage('Verify Dockerfile') {
+            steps {
+                script {
+                    if (!fileExists('Dockerfile')) {
+                        error "Dockerfile not found"
+                    }
+                }
+            }
+        }
         stage('Build Docker Image') {
             steps {
                 script {
