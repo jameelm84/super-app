@@ -1,17 +1,8 @@
-# Use Jenkins as the base image
-FROM jenkins/jenkins:lts-jdk17
+# Use an official Node.js runtime as the base image
+FROM node:18
 
-# Switch to root user to install necessary software
-USER root
-
-# Install Docker and Node.js
-RUN apt-get update && \
-    apt-get install -y docker.io && \
-    curl -sL https://deb.nodesource.com/setup_17.x | bash - && \
-    apt-get install -y nodejs
-
-# Switch back to the jenkins user
-USER jenkins
+# Install Docker
+RUN apt-get update && apt-get install -y docker.io
 
 # Set the working directory to the app folder
 WORKDIR /node
