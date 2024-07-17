@@ -42,8 +42,8 @@ pipeline {
                     script {
                         sh """
                         aws deploy create-deployment \
-                        --application-name my-application \
-                        --deployment-group-name my-deployment-group \
+                        --application-name supper-app-jameel \
+                        --deployment-group-name jameel-app-dg \
                         --s3-location bucket=my-bucket,bundleType=zip,key=my-key.zip \
                         --region eu-central-1
                         """
