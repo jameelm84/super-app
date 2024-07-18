@@ -36,6 +36,20 @@ pipeline {
                 }
             }
         }
+        stage('Archive') {
+            steps {
+                script {
+                    sh 'zip -r my-key.zip .'
+                }
+            }
+        }
+        stage('Upload to S3') {
+            steps {
+                script {
+                    sh 'aws s3 cp my-key.zip s3://bucket-jenkins-jameel/jenkins/my-key.zip --region eu-central-1'
+                }
+            }
+        }
         stage('Deploy to AWS CodeDeploy') {
             steps {
                 withAWS(credentials: 'aws-codedeploy', region: 'eu-central-1') {
@@ -44,7 +58,7 @@ pipeline {
                         aws deploy create-deployment \
                         --application-name supper-app-jameel \
                         --deployment-group-name jameel-app-dg \
-                        --s3-location bucket=my-bucket,bundleType=zip,key=my-key.zip \
+                        --s3-location bucket=bucket-jenkins-jameel,bundleType=zip,key=jenkins/my-key.zip \
                         --region eu-central-1
                         """
                     }
