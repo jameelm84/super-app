@@ -1,17 +1,30 @@
 version: 0.0
 os: linux
 files:
-  - source: /index.html
+  - source: node/Dockerfile
+    destination: /var/www/html/
+  - source: node/package.json
+    destination: /var/www/html/
+  - source: node/server.js
+    destination: /var/www/html/
+  - source: php
+    destination: /var/www/html/php
+  - source: docker-compose.yaml
     destination: /var/www/html/
 hooks:
-  BeforeInstall:
-    - location: scripts/install_dependencies
-      timeout: 300
-      runas: root
-    - location: scripts/start_server
-      timeout: 300
-      runas: root
   ApplicationStop:
-    - location: scripts/stop_server
+    - location: stop_server.sh
+      timeout: 300
+      runas: root
+  BeforeInstall:
+    - location: install_dependencies.sh
+      timeout: 300
+      runas: root
+  ApplicationStart:
+    - location: start_server.sh
+      timeout: 300
+      runas: root
+  ValidateService:
+    - location: validate_service.sh
       timeout: 300
       runas: root
