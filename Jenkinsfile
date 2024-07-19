@@ -36,72 +36,17 @@ pipeline {
                 }
             }
         }
-        stage('Create AppSpec and Scripts') {
+        stage('Prepare Deployment Package') {
             steps {
                 script {
-                    writeFile file: 'appspec.yml', text: """
-                    version: 0.0
-                    os: linux
-                    files:
-                      - source: /
-                        destination: /var/www/html/
-                    hooks:
-                      BeforeInstall:
-                        - location: before_install.sh
-                          timeout: 300
-                          runas: root
-                      AfterInstall:
-                        - location: after_install.sh
-                          timeout: 300
-                          runas: root
-                      ApplicationStop:
-                        - location: stop_server.sh
-                          timeout: 300
-                          runas: root
-                      ApplicationStart:
-                        - location: start_server.sh
-                          timeout: 300
-                          runas: root
-                      ValidateService:
-                        - location: validate_service.sh
-                          timeout: 300
-                          runas: root
+                    sh """
+                    mkdir -p deploy
+                    cp -r * deploy/
+                    cd deploy
+                    zip -r ../deployment-package.zip *
+                    cd ..
+                    aws s3 cp deployment-package.zip s3://bucket-jenkins-jameel/jenkins/deployment-package.zip
                     """
-                    writeFile file: 'before_install.sh', text: '''
-                    #!/bin/bash
-                    apt-get update
-                    apt-get install -y docker-compose
-                    '''
-                    writeFile file: 'after_install.sh', text: '''
-                    #!/bin/bash
-                    echo "After Install step"
-                    '''
-                    writeFile file: 'stop_server.sh', text: '''
-                    #!/bin/bash
-                    docker-compose -f /var/www/html/docker-compose.yaml down
-                    '''
-                    writeFile file: 'start_server.sh', text: '''
-                    #!/bin/bash
-                    docker-compose -f /var/www/html/docker-compose.yaml up -d
-                    '''
-                    writeFile file: 'validate_service.sh', text: '''
-                    #!/bin/bash
-                    echo "Validate Service step"
-                    '''
-                }
-            }
-        }
-        stage('Create Deployment Package') {
-            steps {
-                script {
-                    sh 'zip -r my-key.zip *'
-                }
-            }
-        }
-        stage('Upload to S3') {
-            steps {
-                withAWS(credentials: 'aws-codedeploy', region: 'eu-central-1') {
-                    s3Upload(bucket: 'bucket-jenkins-jameel', path: 'jenkins/', file: 'my-key.zip')
                 }
             }
         }
@@ -113,7 +58,7 @@ pipeline {
                         aws deploy create-deployment \
                         --application-name supper-app-jameel \
                         --deployment-group-name jameel-app-dg \
-                        --s3-location bucket=bucket-jenkins-jameel,bundleType=zip,key=jenkins/my-key.zip \
+                        --s3-location bucket=bucket-jenkins-jameel,bundleType=zip,key=jenkins/deployment-package.zip \
                         --region eu-central-1
                         """
                     }
