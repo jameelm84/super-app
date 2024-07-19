@@ -40,12 +40,14 @@ pipeline {
             steps {
                 script {
                     sh """
-                    mkdir -p deploy
-                    cp -r * deploy/
+                    mkdir -p deploy/scripts
+                    cp -r Jenkinsfile README.md appspec.yml docker-compose.yaml node php deploy/
+                    cp scripts/*.sh deploy/scripts/
                     cd deploy
                     zip -r ../deployment-package.zip *
                     cd ..
                     aws s3 cp deployment-package.zip s3://bucket-jenkins-jameel/jenkins/deployment-package.zip
+                    rm -rf deploy
                     """
                 }
             }
