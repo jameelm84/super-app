@@ -40,7 +40,20 @@ pipeline {
             steps {
                 script {
                     sh """
+                    # Remove any existing deployment package
+                    rm -f deployment-package.zip
+
+                    # Verify no unnecessary files are in the scripts directory
+                    rm -rf scripts/unwanted_file.txt
+                    rm -rf scripts/unwanted_directory
+
+                    # Create deployment package
                     zip -r deployment-package.zip Jenkinsfile README.md appspec.yml docker-compose.yaml node php scripts
+
+                    # Verify that no unnecessary files are included in the deployment package
+                    zipinfo deployment-package.zip | grep -v "my-key.zip"
+
+                    # Upload to S3
                     aws s3 cp deployment-package.zip s3://bucket-jenkins-jameel/jenkins/deployment-package.zip
                     """
                 }
