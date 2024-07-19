@@ -38,13 +38,11 @@ pipeline {
         }
         stage('Prepare Deployment Package') {
             steps {
-                withAWS(credentials: 'aws-codedeploy', region: 'eu-central-1') {
-                    script {
-                        sh """
-                        zip -r deployment-package.zip Jenkinsfile README.md appspec.yml docker-compose.yaml node php scripts after_install.sh before_install.sh install_dependencies.sh start_server.sh stop_server.sh validate_service.sh
-                        aws s3 cp deployment-package.zip s3://bucket-jenkins-jameel/jenkins/deployment-package.zip
-                        """
-                    }
+                script {
+                    sh """
+                    zip -r deployment-package.zip Jenkinsfile README.md appspec.yml docker-compose.yaml node php scripts
+                    aws s3 cp deployment-package.zip s3://bucket-jenkins-jameel/jenkins/deployment-package.zip
+                    """
                 }
             }
         }
