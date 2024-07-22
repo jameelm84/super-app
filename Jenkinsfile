@@ -36,14 +36,19 @@ pipeline {
         
         stage('Upload to S3') {
             steps {
-                withCredentials([string(credentialsId: 'aws-codedeploy', variable: 'AWS_ACCESS_KEY_ID'),
-                                 string(credentialsId: 'aws-codedeploy', variable: 'AWS_SECRET_ACCESS_KEY')]) {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-codedeploy']]) {
                     script {
                         sh '''
+                        echo "Configuring AWS CLI..."
                         aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
                         aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
                         aws configure set default.region $REGION
+                        echo "AWS CLI Configuration:"
+                        aws configure list
+
+                        echo "Uploading to S3..."
                         aws s3 cp ${APP_NAME}/deployment-package.zip s3://${S3_BUCKET}/deployment-package.zip
+                        echo "Upload complete."
                         '''
                     }
                 }
@@ -52,8 +57,7 @@ pipeline {
 
         stage('Deploy to CodeDeploy') {
             steps {
-                withCredentials([string(credentialsId: 'aws-codedeploy', variable: 'AWS_ACCESS_KEY_ID'),
-                                 string(credentialsId: 'aws-codedeploy', variable: 'AWS_SECRET_ACCESS_KEY')]) {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-codedeploy']]) {
                     script {
                         def deploymentId = sh(
                             script: """
