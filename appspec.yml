@@ -3,10 +3,7 @@ os: linux
 files:
   - source: /
     destination: /home/ec2-user/super-app
-permissions:
-  - object: /home/ec2-user/super-app
-    owner: ec2-user
-    group: ec2-user
+
 hooks:
   BeforeInstall:
     - location: scripts/before_install.sh
@@ -20,11 +17,11 @@ hooks:
     - location: scripts/start_server.sh
       timeout: 300
       runas: ec2-user
-  ValidateService:
-    - location: scripts/validate_service.sh
-      timeout: 300
-      runas: ec2-user
   ApplicationStop:
     - location: scripts/stop_server.sh
+      timeout: 300
+      runas: ec2-user
+  ValidateService:
+    - location: scripts/validate_service.sh
       timeout: 300
       runas: ec2-user
