@@ -1,2 +1,5 @@
 #!/bin/bash
-# Any commands you need to run after installation
+
+# Ensure all necessary dependencies are installed
+cd /var/www/html
+docker-compose build
