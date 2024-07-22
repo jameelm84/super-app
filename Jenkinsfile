@@ -1,71 +1,85 @@
 pipeline {
     agent any
+
     environment {
+        S3_BUCKET = 'bucket-jenkins-jameel/jenkins'
+        APP_NAME = 'super-app'
+        REPO_URL = 'https://github.com/jameelm84/super-app.git'
+        REGION = 'eu-central-1'
+        DEPLOYMENT_GROUP = 'jameel-app-dg'
+        CODEDEPLOY_APPLICATION = 'supper-app-jameel'
         DOCKERHUB_CREDENTIALS = credentials('dockerhub')
         REPO_NAME = 'jameelm/supper-app'
         AWS_CREDENTIALS = credentials('aws-codedeploy')
     }
+
     stages {
-        stage('Checkout') {
+        stage('Clone Repository') {
             steps {
-                git branch: 'main', credentialsId: 'github-credentials', url: 'https://github.com/jameelm84/super-app.git'
+                git url: "${REPO_URL}", branch: 'main'
             }
         }
-        stage('Verify Dockerfile') {
+        
+        stage('Build Deployment Package') {
             steps {
                 script {
-                    if (!fileExists('node/Dockerfile')) {
-                        error "Dockerfile not found in node directory"
-                    }
+                    sh '''
+                    mkdir -p ${APP_NAME}/scripts
+                    cp Jenkinsfile README.md appspec.yml docker-compose.yaml ${APP_NAME}/
+                    cp -r node php scripts ${APP_NAME}/
+                    cd ${APP_NAME}
+                    zip -r deployment-package.zip Jenkinsfile README.md appspec.yml docker-compose.yaml node php scripts
+                    '''
                 }
             }
         }
-        stage('Build Docker Image') {
+        
+        stage('Upload to S3') {
             steps {
-                script {
-                    docker.build("${env.REPO_NAME}:${env.BUILD_NUMBER}", "node/")
-                }
-            }
-        }
-        stage('Push to Docker Hub') {
-            steps {
-                script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub') {
-                        docker.image("${env.REPO_NAME}:${env.BUILD_NUMBER}").push()
-                    }
-                }
-            }
-        }
-        stage('Prepare Deployment Package') {
-            steps {
-                script {
-                    sh """
-                    mkdir -p deploy/scripts
-                    cp -r Jenkinsfile README.md appspec.yml docker-compose.yaml node php deploy/
-                    cp scripts/*.sh deploy/scripts/
-                    cd deploy
-                    zip -r ../deployment-package.zip *
-                    cd ..
-                    aws s3 cp deployment-package.zip s3://bucket-jenkins-jameel/jenkins/deployment-package.zip
-                    rm -rf deploy
-                    """
-                }
-            }
-        }
-        stage('Deploy to AWS CodeDeploy') {
-            steps {
-                withAWS(credentials: 'aws-codedeploy', region: 'eu-central-1') {
+                withCredentials([string(credentialsId: 'aws-codedeploy', variable: 'AWS_ACCESS_KEY_ID'),
+                                 string(credentialsId: 'aws-codedeploy', variable: 'AWS_SECRET_ACCESS_KEY')]) {
                     script {
-                        sh """
-                        aws deploy create-deployment \
-                        --application-name supper-app-jameel \
-                        --deployment-group-name jameel-app-dg \
-                        --s3-location bucket=bucket-jenkins-jameel,bundleType=zip,key=jenkins/deployment-package.zip \
-                        --region eu-central-1
-                        """
+                        sh '''
+                        aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+                        aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+                        aws configure set default.region $REGION
+                        aws s3 cp ${APP_NAME}/deployment-package.zip s3://${S3_BUCKET}/deployment-package.zip
+                        '''
                     }
                 }
             }
+        }
+
+        stage('Deploy to CodeDeploy') {
+            steps {
+                withCredentials([string(credentialsId: 'aws-codedeploy', variable: 'AWS_ACCESS_KEY_ID'),
+                                 string(credentialsId: 'aws-codedeploy', variable: 'AWS_SECRET_ACCESS_KEY')]) {
+                    script {
+                        def deploymentId = sh(
+                            script: """
+                            aws deploy create-deployment \
+                                --application-name ${CODEDEPLOY_APPLICATION} \
+                                --deployment-group-name ${DEPLOYMENT_GROUP} \
+                                --s3-location bucket=${S3_BUCKET},bundleType=zip,key=deployment-package.zip \
+                                --region ${REGION} \
+                                --output text --query 'deploymentId'
+                            """,
+                            returnStdout: true
+                        ).trim()
+                        
+                        echo "Deployment started with ID: ${deploymentId}"
+                    }
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo 'Deployment successful!'
+        }
+        failure {
+            echo 'Deployment failed!'
         }
     }
 }
