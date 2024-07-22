@@ -1,5 +1,5 @@
 #!/bin/bash
-
-# Ensure all necessary dependencies are installed
-cd /var/www/html
-docker-compose build
+# Print current working directory
+echo "Current directory: $(pwd)"
+# Copy files to the target directory
+cp -r /home/ec2-user/super-app/* /var/www/html/
