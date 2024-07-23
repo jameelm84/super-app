@@ -6,7 +6,7 @@ pipeline {
         APP_NAME = 'super-app'
         REPO_URL = 'https://github.com/jameelm84/super-app.git'
         REGION = 'eu-central-1'
-        DEPLOYMENT_GROUP = 'jameel-app-dg'
+        DEPLOYMENT_GROUP = 'jameel-app-dg-dg'
         CODEDEPLOY_APPLICATION = 'supper-app-jameel'
         DOCKERHUB_CREDENTIALS = credentials('dockerhub')
         REPO_NAME = 'jameelm/supper-app'
