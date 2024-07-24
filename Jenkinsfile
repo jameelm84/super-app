@@ -15,13 +15,17 @@ pipeline {
         stage('Clone repository') {
             steps {
                 git branch: 'main', url: 'https://github.com/jameelm84/super-app.git'
+                script {
+                    def files = sh(script: 'ls', returnStdout: true).trim()
+                    echo "Files in workspace:\n${files}"
+                }
             }
         }
 
         stage('Build Docker image') {
             steps {
                 script {
-                    dockerImage = docker.build("${REPO_NAME}:latest")
+                    dockerImage = docker.build("${REPO_NAME}:latest", ".", "--builder default")
                 }
             }
         }
