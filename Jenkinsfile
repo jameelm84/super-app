@@ -4,11 +4,11 @@ pipeline {
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub')
         REPO_NAME = 'jameelm/supper-app'
-        AWS_CREDENTIALS = credentials('aws-codedeploy')
         S3_BUCKET = 'bucket-jenkins-jameel'
         S3_PATH = 'jenkins/deployment-package.zip'
         DEPLOYMENT_GROUP = 'jameel-app-dg-dg'
         CODEDEPLOY_APPLICATION = 'supper-app-jameel'
+        AWS_REGION = 'eu-central-1'
     }
 
     stages {
@@ -29,7 +29,10 @@ pipeline {
         stage('Push Docker image to DockerHub') {
             steps {
                 script {
-                    sh 'docker-compose push'
+                    sh """
+                    echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin
+                    docker-compose push
+                    """
                 }
             }
         }
@@ -45,9 +48,9 @@ pipeline {
         stage('Upload to S3') {
             steps {
                 script {
-                    withAWS(credentials: AWS_CREDENTIALS, region: 'eu-central-1') {
-                        s3Upload(bucket: "${S3_BUCKET}", path: "${S3_PATH}", file: 'deployment-package.zip')
-                    }
+                    sh """
+                    aws s3 cp deployment-package.zip s3://$S3_BUCKET/$S3_PATH
+                    """
                 }
             }
         }
@@ -55,9 +58,9 @@ pipeline {
         stage('Deploy with CodeDeploy') {
             steps {
                 script {
-                    withAWS(credentials: AWS_CREDENTIALS, region: 'eu-central-1') {
-                        sh "aws deploy create-deployment --application-name ${CODEDEPLOY_APPLICATION} --deployment-group-name ${DEPLOYMENT_GROUP} --s3-location bucket=${S3_BUCKET},key=${S3_PATH},bundleType=zip --region eu-central-1 --output text --query deploymentId"
-                    }
+                    sh """
+                    aws deploy create-deployment --application-name $CODEDEPLOY_APPLICATION --deployment-group-name $DEPLOYMENT_GROUP --s3-location bucket=$S3_BUCKET,key=$S3_PATH,bundleType=zip --region $AWS_REGION --output text --query deploymentId
+                    """
                 }
             }
         }
