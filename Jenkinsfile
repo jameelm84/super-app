@@ -15,17 +15,13 @@ pipeline {
         stage('Clone repository') {
             steps {
                 git branch: 'main', url: 'https://github.com/jameelm84/super-app.git'
-                script {
-                    def files = sh(script: 'ls', returnStdout: true).trim()
-                    echo "Files in workspace:\n${files}"
-                }
             }
         }
 
         stage('Build Docker image') {
             steps {
                 script {
-                    dockerImage = docker.build("${REPO_NAME}:latest", ".", "--builder default")
+                    sh 'docker-compose build'
                 }
             }
         }
@@ -33,9 +29,7 @@ pipeline {
         stage('Push Docker image to DockerHub') {
             steps {
                 script {
-                    docker.withRegistry('', DOCKERHUB_CREDENTIALS) {
-                        dockerImage.push()
-                    }
+                    sh 'docker-compose push'
                 }
             }
         }
@@ -43,7 +37,7 @@ pipeline {
         stage('Create deployment package') {
             steps {
                 script {
-                    sh 'zip -r deployment-package.zip Jenkinsfile README.md appspec.yml docker-compose.yaml node php scripts'
+                    sh 'zip -r deployment-package.zip docker-compose.yaml appspec.yml scripts'
                 }
             }
         }
