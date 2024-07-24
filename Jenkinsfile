@@ -5,7 +5,7 @@ pipeline {
         REPO_NAME = 'jameelm/supper-app'
         AWS_CREDENTIALS = credentials('aws-codedeploy')
         S3_BUCKET = 'bucket-jenkins-jameel'
-        DEPLOYMENT_GROUP = 'jameel-app-dg-dg'
+        DEPLOYMENT_GROUP = 'jameel-dg-dg'
         CODEDEPLOY_APPLICATION = 'supper-app-jameel'
     }
     stages {
