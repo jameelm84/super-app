@@ -63,7 +63,7 @@ pipeline {
                         sh """
                         aws deploy create-deployment \
                         --application-name supper-app-jameel \
-                        --deployment-group-name jameel-app-dg \
+                        --deployment-group-name jameel-dg-dg \
                         --s3-location bucket=bucket-jenkins-jameel,bundleType=zip,key=jenkins/deployment-package.zip \
                         --region eu-central-1
                         """
