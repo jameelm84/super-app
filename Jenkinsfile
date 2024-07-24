@@ -21,6 +21,7 @@ pipeline {
         stage('Build Docker image') {
             steps {
                 script {
+                    cd php/
                     dockerImage = docker.build("${REPO_NAME}:latest")
                 }
             }
