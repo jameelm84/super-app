@@ -1,48 +1,69 @@
 pipeline {
     agent any
+
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub')
-        REPO_NAME = 'jameelm/supper-app'
-        AWS_CREDENTIALS = credentials('aws-codedeploy')
-        S3_BUCKET = 'bucket-jenkins-jameel'
-        DEPLOYMENT_GROUP = 'jameel-app-dg-dg'
-        CODEDEPLOY_APPLICATION = 'supper-app-jameel'
+        AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+        AWS_DEFAULT_REGION = 'eu-central-1'
     }
+
     stages {
-        stage('Clone Repository') {
+        stage('Checkout Code') {
             steps {
-                git 'https://github.com/jameelm84/super-app.git'
+                checkout scm
             }
         }
-        stage('Package Application') {
+
+        stage('Build Docker Image') {
             steps {
                 script {
-                    sh 'zip -r deployment-package.zip Jenkinsfile README.md appspec.yml docker-compose.yaml node php scripts'
+                    dockerImage = docker.build("supper-app:latest", "./node")
                 }
             }
         }
-        stage('Upload to S3') {
+
+        stage('Push Docker Image') {
             steps {
-                withAWS(credentials: 'aws-codedeploy', region: 'eu-central-1') {
-                    s3Upload(bucket: "${S3_BUCKET}", file: 'deployment-package.zip', path: 'jenkins/deployment-package.zip')
-                }
-            }
-        }
-        stage('Deploy to EC2') {
-            steps {
-                withAWS(credentials: 'aws-codedeploy', region: 'eu-central-1') {
-                    script {
-                        sh """
-                        aws deploy create-deployment \
-                            --application-name ${CODEDEPLOY_APPLICATION} \
-                            --deployment-group-name ${DEPLOYMENT_GROUP} \
-                            --s3-location bucket=${S3_BUCKET}/jenkins,bundleType=zip,key=deployment-package.zip \
-                            --deployment-config-name CodeDeployDefault.AllAtOnce \
-                            --region eu-central-1
-                        """
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub') {
+                        dockerImage.push('latest')
                     }
                 }
             }
+        }
+
+        stage('Prepare Deployment Package') {
+            steps {
+                sh 'zip -r deployment-package.zip Jenkinsfile README.md appspec.yml docker-compose.yaml node php scripts'
+            }
+        }
+
+        stage('Upload to S3') {
+            steps {
+                withAWS(credentials: 'aws-credentials') {
+                    s3Upload(bucket: 'bucket-jenkins-jameel', file: 'deployment-package.zip', path: 'jenkins/deployment-package.zip')
+                }
+            }
+        }
+
+        stage('Deploy to AWS CodeDeploy') {
+            steps {
+                withAWS(credentials: 'aws-credentials') {
+                    sh '''
+                    aws deploy create-deployment \
+                        --application-name supper-app-jameel \
+                        --deployment-group-name jameel-dg-dg \
+                        --s3-location bucket=bucket-jenkins-jameel,bundleType=zip,key=jenkins/deployment-package.zip \
+                        --region eu-central-1
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
         }
     }
 }
