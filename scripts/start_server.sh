@@ -1,3 +1,3 @@
 #!/bin/bash
-cd /var/www/html || exit 1
-docker-compose up -d
+cd /var/www/html/
+docker-compose -f docker-compose.yaml up -d
