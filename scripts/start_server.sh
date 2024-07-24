@@ -1,3 +1,11 @@
 #!/bin/bash
-cd /home/ec2-user/super-app
-docker-compose up -d
+
+# הפעלת הקונטיינרים של docker-compose
+cd /var/www/html/ || exit 1
+
+if [ -f "docker-compose.yaml" ]; then
+  docker-compose up -d
+else
+  echo "docker-compose.yaml not found in /var/www/html/"
+  exit 1
+fi
