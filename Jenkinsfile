@@ -44,7 +44,7 @@ pipeline {
                     rm -f deployment-package.zip
 
                     # Create deployment package
-                    zip -r deployment-package.zip Jenkinsfile README.md appspec.yml docker-compose.yaml node php scripts
+                    zip -r deployment-package.zip Jenkinsfile  appspec.yml docker-compose.yaml node php scripts
 
                     # Verify the content of the deployment package
                     echo "Contents of the deployment package:"
