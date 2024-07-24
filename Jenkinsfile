@@ -1,69 +1,75 @@
 pipeline {
     agent any
-
     environment {
-        AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
-        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
-        AWS_DEFAULT_REGION = 'eu-central-1'
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub')
+        REPO_NAME = 'jameelm/supper-app'
+        AWS_CREDENTIALS = credentials('aws-codedeploy')
     }
-
     stages {
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-                checkout scm
+                git branch: 'main', credentialsId: 'github-credentials', url: 'https://github.com/jameelm84/super-app.git'
             }
         }
-
-        stage('Build Docker Image') {
+        stage('Verify Dockerfile') {
             steps {
                 script {
-                    dockerImage = docker.build("supper-app:latest", "./node")
-                }
-            }
-        }
-
-        stage('Push Docker Image') {
-            steps {
-                script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub') {
-                        dockerImage.push('latest')
+                    if (!fileExists('node/Dockerfile')) {
+                        error "Dockerfile not found in node directory"
                     }
                 }
             }
         }
-
-        stage('Prepare Deployment Package') {
+        stage('Build Docker Image') {
             steps {
-                sh 'zip -r deployment-package.zip Jenkinsfile README.md appspec.yml docker-compose.yaml node php scripts'
-            }
-        }
-
-        stage('Upload to S3') {
-            steps {
-                withAWS(credentials: 'aws-credentials') {
-                    s3Upload(bucket: 'bucket-jenkins-jameel', file: 'deployment-package.zip', path: 'jenkins/deployment-package.zip')
+                script {
+                    docker.build("${env.REPO_NAME}:${env.BUILD_NUMBER}", "node/")
                 }
             }
         }
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub') {
+                        docker.image("${env.REPO_NAME}:${env.BUILD_NUMBER}").push()
+                    }
+                }
+            }
+        }
+        stage('Prepare Deployment Package') {
+            steps {
+                script {
+                    sh """
+                    # Remove any existing deployment package
+                    rm -f deployment-package.zip
 
+                    # Create deployment package
+                    zip -r deployment-package.zip Jenkinsfile README.md appspec.yml docker-compose.yaml node php scripts
+
+                    # Verify the content of the deployment package
+                    echo "Contents of the deployment package:"
+                    unzip -l deployment-package.zip
+
+                    # Upload to S3
+                    aws s3 cp deployment-package.zip s3://bucket-jenkins-jameel/jenkins/deployment-package.zip
+                    """
+                }
+            }
+        }
         stage('Deploy to AWS CodeDeploy') {
             steps {
-                withAWS(credentials: 'aws-credentials') {
-                    sh '''
-                    aws deploy create-deployment \
+                withAWS(credentials: 'aws-codedeploy', region: 'eu-central-1') {
+                    script {
+                        sh """
+                        aws deploy create-deployment \
                         --application-name supper-app-jameel \
                         --deployment-group-name jameel-dg-dg \
                         --s3-location bucket=bucket-jenkins-jameel,bundleType=zip,key=jenkins/deployment-package.zip \
                         --region eu-central-1
-                    '''
+                        """
+                    }
                 }
             }
-        }
-    }
-
-    post {
-        always {
-            cleanWs()
         }
     }
 }
