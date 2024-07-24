@@ -11,7 +11,7 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/jameelm84/super-app.git'
+                git branch: 'main', url: 'https://github.com/jameelm84/super-app.git'
             }
         }
         stage('Package Application') {
