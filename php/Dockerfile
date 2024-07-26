@@ -2,7 +2,7 @@
 FROM php:8.0-apache
 
 # Switch to app directory
-WORKDIR /home/ec2-user/super-app/
+WORKDIR /var/www/html
 
 # Copy everything
 COPY . .
