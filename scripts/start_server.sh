@@ -1,4 +1,3 @@
 #!/bin/bash
-cd /home/ec2-user/super-app || exit 1
-docker-compose down
-docker-compose up -d
+cd /home/ec2-user/super-app/
+docker-compose -f docker-compose.yaml up -d
